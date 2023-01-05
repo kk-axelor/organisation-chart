@@ -31,7 +31,7 @@ const template = ({ photo, name, post, phone, mail }) => {
   `;
 };
 
-function OrgChartEditorCustomShape() {
+export default function OrgChartEditor() {
   const [collapse, setCollapse] = React.useState(true);
   const diagramContainer = React.useRef();
   const editorContainer = React.useRef();
@@ -138,5 +138,3 @@ function OrgChartEditorCustomShape() {
     </div>
   );
 }
-
-export default OrgChartEditorCustomShape;
