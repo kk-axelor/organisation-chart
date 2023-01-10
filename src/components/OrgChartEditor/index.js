@@ -217,7 +217,7 @@ export default function OrgChartEditor({ parameters = {} }) {
         diagram.data.parse(_.uniqBy(sections, "id") || []);
       } else {
         window.alert(
-          "No head of department found for this department & compamny"
+          "No head of department found for this department & company"
         );
       }
       diagramRef.current = diagram;
