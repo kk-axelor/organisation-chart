@@ -9,7 +9,7 @@ import "./index.css";
 const getImageURL = (photo) => {
   const { id } = photo || {};
   if (!id) {
-    return '';
+    return "";
   }
   return `${
     process.env.NODE_ENV === "production" ? ".." : "axelor-erp"
@@ -33,12 +33,16 @@ const template = ({ photo, name, post, phone, mail }) => {
             <span class="dhx_diagram_template_a__icon mdi mdi-cellphone-android"></span>
             <span class="dhx_diagram_template_a__text">${phone}</span>
           </div>
-          <div class="dhx_diagram_template_a__row">
+          ${
+            mail
+              ? `<div class="dhx_diagram_template_a__row">
             <span class="dhx_diagram_template_a__icon mdi mdi-email-outline"></span>
             <span class="dhx_diagram_template_a__text">
               <a class="dhx_diagram_template_a__link" href="mailto:${mail}" target="_blank">${mail}</a>
             </span>
-          </div>
+          </div>`
+              : ""
+          }
         </div>
       </div>
     </div>
