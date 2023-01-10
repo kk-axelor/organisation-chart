@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import fromCDN from "from-cdn";
 import _ from "loadsh";
-import Button from "../Button";
+// import Button from "../Button";
 import Service from "../../services";
 
 import "./index.css";
@@ -59,12 +59,12 @@ export default function OrgChartEditor({ parameters = {} }) {
   const diagramRef = useRef(null);
   const editorRef = useRef(null);
 
-  function handleEdit() {
-    setCollapse(false);
-    const editor = editorRef.current;
-    const diagram = diagramRef.current;
-    editor && diagram && editor.import(diagram);
-  }
+  // function handleEdit() {
+  //   setCollapse(false);
+  //   const editor = editorRef.current;
+  //   const diagram = diagramRef.current;
+  //   editor && diagram && editor.import(diagram);
+  // }
 
   useEffect(() => {
     if (!id) return;
