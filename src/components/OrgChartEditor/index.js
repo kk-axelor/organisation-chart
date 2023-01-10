@@ -49,6 +49,26 @@ const template = ({ photo, name, post, phone, mail }) => {
   `;
 };
 
+const getEmployees = async (data) => {
+  const res = await Service.search("com.axelor.apps.hr.db.Employee", {
+    data,
+    fields: [
+      "contactPartner.emailAddress.address",
+      "contactPartner.picture",
+      "contactPartner.simpleFullName",
+      "contactPartner.fixedPhone",
+      "contactPartner.mobilePhone",
+      "managerUser",
+      "managerUser.employee.id",
+      "mainEmploymentContract.companyDepartment",
+      "mainEmploymentContract.payCompany",
+      "mainEmploymentContract.companyDepartment.headOfDepartment.id",
+      "mainEmploymentContract.payCompany.headOfCompany.id",
+    ],
+  });
+  return res?.status === 0 ? res?.data : [];
+};
+
 export default function OrgChartEditor({ parameters = {} }) {
   const { id } = parameters;
   const [collapse, setCollapse] = useState(true);
@@ -69,7 +89,7 @@ export default function OrgChartEditor({ parameters = {} }) {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const planning = await Service.search(
+      const res = await Service.search(
         "com.axelor.apps.hr.db.OrganizationChart",
         {
           data: {
@@ -81,114 +101,42 @@ export default function OrgChartEditor({ parameters = {} }) {
               },
             ],
           },
-          fields: ["company", "companyDepartmentSet", "company.headOfCompany"],
+          fields: [
+            "company",
+            "companyDepartmentSet",
+            "company.headOfCompany.id",
+          ],
         }
       );
-      if (planning?.status === 0) {
-        setPlanning(planning?.data[0]);
+      if (res?.status === 0) {
+        const planning = res?.data && res?.data[0];
+        setPlanning(planning);
+        const { company, companyDepartmentSet } = planning || {};
+        let criteria = [
+          {
+            fieldName: "mainEmploymentContract.payCompany.id",
+            operator: "=",
+            value: company?.id,
+          },
+        ];
+        if (companyDepartmentSet?.length > 0) {
+          criteria.push({
+            fieldName: "mainEmploymentContract.companyDepartment.id",
+            operator: "IN",
+            value: companyDepartmentSet.map((c) => c.id),
+          });
+        }
+        const employees = await getEmployees({
+          criteria,
+          operator: "and",
+        });
+        setEmployees(employees);
       }
     })();
   }, [id]);
 
   useEffect(() => {
-    if (!planning) return;
-    (async () => {
-      const { company, companyDepartmentSet } = planning;
-      let allEmployees = [];
-      const getEmployees = async (data) => {
-        const res = await Service.search("com.axelor.apps.hr.db.Employee", {
-          data,
-          fields: [
-            "contactPartner.emailAddress.address",
-            "contactPartner.picture",
-            "contactPartner.firstName",
-            "contactPartner.name",
-            "contactPartner.simpleFullName",
-            "contactPartner.fixedPhone",
-            "contactPartner.mobilePhone",
-            "managerUser",
-            "managerUser.employee.id",
-            "mainEmploymentContract.companyDepartment",
-            "mainEmploymentContract.payCompany",
-          ],
-        });
-        return res?.status === 0 ? res?.data : [];
-      };
-      const getManagers = async (employees = []) => {
-        const managers = employees?.filter((e) => e.managerUser);
-        allEmployees = [...allEmployees, ...(employees || [])];
-        const managerIds = managers.map((m) => m.id);
-        if (managerIds.length > 0) {
-          let criteria = [
-            {
-              fieldName: "managerUser.id",
-              operator: "IN",
-              value: managerIds,
-            },
-            {
-              fieldName: "mainEmploymentContract.payCompany.id",
-              operator: "=",
-              value: company?.id,
-            },
-          ];
-          if (companyDepartmentSet?.length > 0) {
-            criteria.push({
-              fieldName: "mainEmploymentContract.companyDepartment.id",
-              operator: "IN",
-              value: companyDepartmentSet.map((c) => c.id),
-            });
-          }
-          const newemps = await getEmployees({
-            criteria,
-            operator: "and",
-          });
-          allEmployees = [...allEmployees, ...(newemps || [])];
-          getManagers(newemps);
-        }
-      };
-
-      const headOfCompany = planning && planning["company.headOfCompany"];
-      if (!headOfCompany) return;
-      let payload = [
-        {
-          fieldName: "mainEmploymentContract.payCompany.id",
-          operator: "=",
-          value: company?.id,
-        },
-        {
-          operator: "or",
-          criteria: [
-            {
-              fieldName: "id",
-              operator: "=",
-              value: headOfCompany?.id,
-            },
-            {
-              fieldName: "managerUser.employee.id",
-              operator: "=",
-              value: headOfCompany?.id,
-            },
-          ],
-        },
-      ];
-      if (companyDepartmentSet?.length > 0) {
-        payload.push({
-          fieldName: "mainEmploymentContract.companyDepartment.id",
-          operator: "IN",
-          value: companyDepartmentSet.map((c) => c.id),
-        });
-      }
-      const employees = await getEmployees({
-        criteria: payload,
-        operator: "and",
-      });
-      await getManagers(employees);
-      setEmployees(allEmployees);
-    })();
-  }, [planning]);
-
-  useEffect(() => {
-    if (!employees.length) return;
+    if (!employees.length || !planning) return;
     fromCDN([
       "https://webix.io/dev/dhtmlx/diagram/diagram_4.0/codebase/diagramWithEditor.css",
       "https://webix.io/dev/dhtmlx/diagram/diagram_4.0/codebase/diagramWithEditor.js",
@@ -245,19 +193,33 @@ export default function OrgChartEditor({ parameters = {} }) {
       editor.events.on("ResetButton", () => {
         setCollapse(false);
       });
-      const emp = employees?.map((emp) => {
-        return {
-          id: emp?.id,
-          name: emp["contactPartner.simpleFullName"],
-          post: emp["mainEmploymentContract.companyDepartment"]?.name,
-          phone: emp["contactPartner.fixedPhone"],
-          mail: emp["contactPartner.emailAddress.address"],
-          photo: emp["contactPartner.picture"],
-          parent: emp["managerUser.employee.id"],
-        };
+      const sections = [];
+      employees?.forEach((emp) => {
+        const parent =
+          emp["managerUser.employee.id"] ||
+          emp["mainEmploymentContract.companyDepartment.headOfDepartment.id"] ||
+          emp["mainEmploymentContract.payCompany.headOfCompany.id"];
+        if (parent) {
+          sections.push({
+            id: emp?.id,
+            name: emp["contactPartner.simpleFullName"],
+            post: emp["mainEmploymentContract.companyDepartment"]?.name,
+            phone: emp["contactPartner.fixedPhone"],
+            mail: emp["contactPartner.emailAddress.address"],
+            photo: emp["contactPartner.picture"],
+            parent:
+              emp?.id !== planning["company.headOfCompany.id"] ? parent : null,
+          });
+        }
       });
-      diagram.data.parse(_.uniqBy(emp, "id") || []);
-
+      const isValid = sections.find((s) => !s.parent);
+      if (isValid?.id) {
+        diagram.data.parse(_.uniqBy(sections, "id") || []);
+      } else {
+        window.alert(
+          "No head of department found for this department & compamny"
+        );
+      }
       diagramRef.current = diagram;
       editorRef.current = editor;
     });
@@ -266,7 +228,7 @@ export default function OrgChartEditor({ parameters = {} }) {
       const diagram = diagramRef.current;
       diagram && diagram.destructor();
     };
-  }, [employees]);
+  }, [employees, planning]);
 
   return (
     <div
