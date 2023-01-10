@@ -274,7 +274,7 @@ export default function OrgChartEditor({ parameters = {} }) {
         collapse ? "without" : "with"
       }-editor`}
     >
-      {collapse && <Button name="Edit" onClick={handleEdit} />}
+      {/* {collapse && <Button name="Edit" onClick={handleEdit} />} */}
       <div
         id="diagram"
         ref={diagramContainer}

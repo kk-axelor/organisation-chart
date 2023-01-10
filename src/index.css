@@ -55,7 +55,8 @@ body,
 }
 
 .dhx_sample-container__without-editor.dhx-container_inner {
-  height: calc(100% - 60px);
+  /* height: calc(100% - 60px); */
+  height: 100%;
 }
 
 /* Buttons */
