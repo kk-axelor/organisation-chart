@@ -87,7 +87,7 @@ export default function OrgChartEditor({ parameters = {} }) {
   // }
 
   useEffect(() => {
-    if (!id) return;
+  
     (async () => {
       const res = await Service.search(
         "com.axelor.apps.hr.db.OrganizationChart",

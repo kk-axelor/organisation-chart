@@ -3,14 +3,17 @@ let lastCookies = {};
 
 function readCookie(name) {
   let cookieString = document.cookie || "";
+  console.log(document.cookie)
   if (cookieString !== lastCookieString) {
     lastCookieString = cookieString;
     lastCookies = cookieString.split("; ").reduce((obj, value) => {
       let parts = value.split("=");
       obj[parts[0]] = parts[1];
+      console.log("parts",parts)
       return obj;
     }, {});
   }
+  console.log(lastCookies)
   return lastCookies[name];
 }
 
@@ -43,7 +46,8 @@ export class Service {
     headers.append("Accept", "application/json");
     headers.append("Content-Type", "application/json");
     headers.append("X-Requested-With", "XMLHttpRequest");
-    headers.append("X-CSRF-Token", readCookie("CSRF-TOKEN"));
+    // headers.append("X-CSRF-Token", readCookie("CSRF-TOKEN"));
+    headers.append("X-Csrf-Token",readCookie("X-Csrf-Token"));
     this.baseURL = process.env.NODE_ENV === "production" ? ".." : "axelor-erp";
     this.headers = headers;
   }
